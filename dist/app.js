@@ -297,9 +297,9 @@ $('#customerReview').addEventListener('click', async () => {
   const starCharacters = '★'.repeat(Number(stars));
   const copiedReview = reviewText ? `${starCharacters}\n${reviewText}` : starCharacters;
   const reviewButton = $('#customerReview');
-  let copied = copyTextImmediately(copiedReview);
+  let copied = false;
 
-  if (!copied && navigator.clipboard?.writeText) {
+  if (navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(copiedReview);
       copied = true;
@@ -307,6 +307,8 @@ $('#customerReview').addEventListener('click', async () => {
       copied = false;
     }
   }
+
+  if (!copied) copied = copyTextImmediately(copiedReview);
 
   if (!copied) {
     $('#reviewText').focus();
@@ -317,12 +319,7 @@ $('#customerReview').addEventListener('click', async () => {
 
   reviewButton.innerHTML = 'Copied! Opening Google… <span>↗</span>';
   showToast(`${stars} star${stars === '1' ? '' : 's'} and text copied—paste it on Google`);
-  const googleWindow = window.open(currentMerchant.reviewUrl, '_blank');
-  if (googleWindow) googleWindow.opener = null;
-  else window.location.assign(currentMerchant.reviewUrl);
-  setTimeout(() => {
-    reviewButton.innerHTML = 'Copy stars & text, then open Google <span>↗</span>';
-  }, 1800);
+  setTimeout(() => window.location.assign(currentMerchant.reviewUrl), 180);
 });
 $('#customerPay').addEventListener('click', () => {
   const amount = $('#customerAmount').value.trim();
