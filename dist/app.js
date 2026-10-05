@@ -270,26 +270,59 @@ document.querySelectorAll('input[name="rating"]').forEach((input) => {
   });
 });
 
+function copyTextImmediately(text) {
+  const helper = document.createElement('textarea');
+  helper.value = text;
+  helper.setAttribute('readonly', '');
+  helper.style.position = 'fixed';
+  helper.style.left = '-9999px';
+  helper.style.top = '0';
+  document.body.appendChild(helper);
+  helper.focus();
+  helper.select();
+  helper.setSelectionRange(0, helper.value.length);
+  let copied = false;
+  try {
+    copied = document.execCommand('copy');
+  } catch {
+    copied = false;
+  }
+  helper.remove();
+  return copied;
+}
+
 $('#customerReview').addEventListener('click', async () => {
   const reviewText = $('#reviewText').value.trim();
   const stars = document.querySelector('input[name="rating"]:checked')?.value || '5';
   const starCharacters = '★'.repeat(Number(stars));
   const copiedReview = reviewText ? `${starCharacters}\n${reviewText}` : starCharacters;
-  window.open(currentMerchant.reviewUrl, '_blank', 'noopener,noreferrer');
+  const reviewButton = $('#customerReview');
+  let copied = copyTextImmediately(copiedReview);
 
-  try {
-    await navigator.clipboard.writeText(copiedReview);
-  } catch {
-    const helper = document.createElement('textarea');
-    helper.value = copiedReview;
-    helper.style.position = 'fixed';
-    helper.style.opacity = '0';
-    document.body.appendChild(helper);
-    helper.select();
-    document.execCommand('copy');
-    helper.remove();
+  if (!copied && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(copiedReview);
+      copied = true;
+    } catch {
+      copied = false;
+    }
   }
-  showToast(`${stars} star${stars === '1' ? '' : 's'} and text copied—paste on Google, then select the official rating`);
+
+  if (!copied) {
+    $('#reviewText').focus();
+    $('#reviewText').select();
+    showToast('Copy was blocked. Your review text is selected—copy it, then try again.');
+    return;
+  }
+
+  reviewButton.innerHTML = 'Copied! Opening Google… <span>↗</span>';
+  showToast(`${stars} star${stars === '1' ? '' : 's'} and text copied—paste it on Google`);
+  const googleWindow = window.open(currentMerchant.reviewUrl, '_blank');
+  if (googleWindow) googleWindow.opener = null;
+  else window.location.assign(currentMerchant.reviewUrl);
+  setTimeout(() => {
+    reviewButton.innerHTML = 'Copy stars & text, then open Google <span>↗</span>';
+  }, 1800);
 });
 $('#customerPay').addEventListener('click', () => {
   const amount = $('#customerAmount').value.trim();
