@@ -193,7 +193,35 @@ $('#downloadQr').addEventListener('click', () => {
 $('#closeDialog').addEventListener('click', () => resultDialog.close());
 $('#customerBack').addEventListener('click', hideCustomer);
 $('#customerAmount').addEventListener('input', updatePayLabel);
-$('#customerReview').addEventListener('click', () => window.open(currentMerchant.reviewUrl, '_blank', 'noopener,noreferrer'));
+$('#reviewText').addEventListener('input', () => {
+  $('#reviewCount').textContent = `${$('#reviewText').value.length} / 500`;
+});
+
+document.querySelectorAll('input[name="rating"]').forEach((input) => {
+  input.addEventListener('change', () => {
+    const stars = document.querySelector('input[name="rating"]:checked')?.value || '5';
+    $('#selectedRating').textContent = `${stars} star${stars === '1' ? '' : 's'} selected`;
+  });
+});
+
+$('#customerReview').addEventListener('click', async () => {
+  const reviewText = $('#reviewText').value.trim();
+  const stars = document.querySelector('input[name="rating"]:checked')?.value || '5';
+  window.open(currentMerchant.reviewUrl, '_blank', 'noopener,noreferrer');
+
+  if (!reviewText) {
+    showToast(`Google opened—select ${stars} star${stars === '1' ? '' : 's'} and write your review`);
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(reviewText);
+  } catch {
+    $('#reviewText').select();
+    document.execCommand('copy');
+  }
+  showToast(`Text copied—select ${stars} star${stars === '1' ? '' : 's'} on Google and paste it`);
+});
 $('#customerPay').addEventListener('click', () => {
   const amount = $('#customerAmount').value.trim();
   if (!amount || Number(amount) <= 0) return showToast('Enter the amount you want to pay');

@@ -139,7 +139,29 @@
         <p class="micro">YOU'RE PAYING</p>
         <h1 id="customerShopName">Anand Chai Corner</h1>
         <p class="customer-sub">Enjoyed your visit? A quick Google review helps this local business grow.</p>
-        <button class="customer-review" id="customerReview" type="button"><span class="big-stars">★★★★★</span><strong>Review on Google</strong><small>Opens the shop's Google listing ↗</small></button>
+        <div class="review-composer">
+          <fieldset class="rating-fieldset">
+            <legend>Choose your Google rating</legend>
+            <div class="rating" id="reviewRating">
+              <input value="5" name="rating" id="star5" type="radio" checked />
+              <label title="5 stars" for="star5" aria-label="5 stars"><svg class="star-outline" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg><svg class="star-fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg><span class="star-shadow"></span></label>
+              <input value="4" name="rating" id="star4" type="radio" />
+              <label title="4 stars" for="star4" aria-label="4 stars"><svg class="star-outline" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg><svg class="star-fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg><span class="star-shadow"></span></label>
+              <input value="3" name="rating" id="star3" type="radio" />
+              <label title="3 stars" for="star3" aria-label="3 stars"><svg class="star-outline" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg><svg class="star-fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg><span class="star-shadow"></span></label>
+              <input value="2" name="rating" id="star2" type="radio" />
+              <label title="2 stars" for="star2" aria-label="2 stars"><svg class="star-outline" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg><svg class="star-fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg><span class="star-shadow"></span></label>
+              <input value="1" name="rating" id="star1" type="radio" />
+              <label title="1 star" for="star1" aria-label="1 star"><svg class="star-outline" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg><svg class="star-fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg><span class="star-shadow"></span></label>
+            </div>
+          </fieldset>
+          <strong class="review-title">Review on Google</strong>
+          <label class="review-text-label" for="reviewText">Write your review</label>
+          <textarea id="reviewText" maxlength="500" rows="3" placeholder="What did you enjoy about your visit?"></textarea>
+          <div class="review-meta"><span id="selectedRating">5 stars selected</span><span id="reviewCount">0 / 500</span></div>
+          <button class="customer-review-action" id="customerReview" type="button">Copy text & open Google review <span>↗</span></button>
+          <small class="review-note">Your text is copied for you to paste on Google. You choose what to submit.</small>
+        </div>
         <div class="customer-divider"><span>then pay securely with UPI</span></div>
         <label class="amount-input"><span>Bill amount <em class="discount-badge" id="discountBadge" hidden></em></span><div><b>₹</b><input id="customerAmount" inputmode="decimal" aria-label="Bill amount before discount" value="120" /></div></label>
         <div class="discount-summary" id="discountSummary" hidden>
