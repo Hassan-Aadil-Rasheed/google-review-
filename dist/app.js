@@ -254,7 +254,10 @@ $('#downloadQr').addEventListener('click', async () => {
       scale: 3,
       backgroundColor: null,
       useCORS: true,
-      logging: false
+      logging: false,
+      onclone: (clonedDocument) => {
+        clonedDocument.querySelector('.qr-panel h2').textContent = 'Scan me';
+      }
     });
     const link = document.createElement('a');
     link.download = `${currentMerchant.shopName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-paanch-poster.png`;
