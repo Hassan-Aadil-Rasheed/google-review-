@@ -114,8 +114,11 @@
             <label>Discount %<input id="discount" name="discount" placeholder="10" inputmode="decimal" min="0" max="100" /></label>
           </div>
           <p class="discount-help">The discount applies to payment automatically. A Google review is never required.</p>
-          <label>Google review link<input id="reviewUrl" name="reviewUrl" required placeholder="https://g.page/r/…/review" inputmode="url" /></label>
-          <p class="field-help"><button type="button" id="reviewHelp">Where do I find this?</button></p>
+          <label>Google review link<input id="reviewUrl" name="reviewUrl" required placeholder="https://g.page/r/…/review" inputmode="url" aria-describedby="reviewLinkStatus" /></label>
+          <div class="review-link-help">
+            <p id="reviewLinkStatus" class="link-status" aria-live="polite">Use the short link from Google Business Profile—not a Google Search result.</p>
+            <button type="button" id="reviewHelp">How do I get the right link?</button>
+          </div>
           <label>Payment note<input id="paymentNote" name="paymentNote" placeholder="Bill payment" maxlength="40" /></label>
           <button class="btn btn-sun" type="submit">Create my QR & page <span>→</span></button>
           <p class="form-terms">By creating a page, you agree to show accurate business and payment details.</p>

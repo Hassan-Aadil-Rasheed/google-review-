@@ -29,13 +29,13 @@ function customerUrl(merchant) {
   const url = new URL(window.location.href);
   url.hash = '';
   url.search = '';
-  url.searchParams.set('mode', 'customer');
-  url.searchParams.set('shop', merchant.shopName);
-  url.searchParams.set('upi', merchant.upiId);
-  if (merchant.amount) url.searchParams.set('amount', merchant.amount);
-  if (Number(merchant.discount) > 0) url.searchParams.set('discount', merchant.discount);
-  url.searchParams.set('review', merchant.reviewUrl);
-  if (merchant.paymentNote) url.searchParams.set('note', merchant.paymentNote);
+  url.searchParams.set('m', 'c');
+  url.searchParams.set('s', merchant.shopName);
+  url.searchParams.set('u', merchant.upiId);
+  if (merchant.amount) url.searchParams.set('a', merchant.amount);
+  if (Number(merchant.discount) > 0) url.searchParams.set('d', merchant.discount);
+  url.searchParams.set('r', merchant.reviewUrl);
+  if (merchant.paymentNote) url.searchParams.set('n', merchant.paymentNote);
   return url.toString();
 }
 
@@ -66,6 +66,37 @@ function normalizeReviewUrl(value) {
   return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
 }
 
+function reviewLinkError(value) {
+  const raw = normalizeReviewUrl(value);
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.toLowerCase().replace(/^www\./, '');
+    const isGoogleHost = host === 'google.com' || host.endsWith('.google.com');
+    const isSearchResult = isGoogleHost && (url.pathname === '/search' || url.hash.startsWith('#sv='));
+    if (isSearchResult || raw.length > 600) {
+      return 'This is a long Google Search link and can break the QR. Use Google Business Profile → Ask for reviews → Copy link.';
+    }
+    if (!['http:', 'https:'].includes(url.protocol)) return 'Enter a valid Google review link.';
+  } catch {
+    return 'Enter a valid Google review link.';
+  }
+  return '';
+}
+
+function updateReviewLinkStatus() {
+  const input = $('#reviewUrl');
+  const status = $('#reviewLinkStatus');
+  const raw = input.value.trim();
+  const error = reviewLinkError(raw);
+  status.classList.toggle('is-error', Boolean(error));
+  status.classList.toggle('is-good', Boolean(raw) && !error);
+  input.setAttribute('aria-invalid', error ? 'true' : 'false');
+  if (error) status.textContent = error;
+  else if (raw) status.textContent = '✓ This link is short enough for a reliable customer QR.';
+  else status.textContent = 'Use the short link from Google Business Profile—not a Google Search result.';
+}
+
 function validateMerchant(merchant) {
   if (!merchant.upiId.includes('@')) return 'Enter a valid UPI ID such as shop@okaxis.';
   try {
@@ -74,6 +105,8 @@ function validateMerchant(merchant) {
   } catch {
     return 'Enter a valid Google review link.';
   }
+  const reviewError = reviewLinkError(merchant.reviewUrl);
+  if (reviewError) return reviewError;
   if (merchant.amount && (Number(merchant.amount) <= 0 || Number(merchant.amount) > 100000)) return 'Enter an amount between ₹1 and ₹1,00,000.';
   if (merchant.discount && (Number(merchant.discount) < 0 || Number(merchant.discount) > 100)) return 'Enter a discount between 0% and 100%.';
   return '';
@@ -86,7 +119,7 @@ function renderQr(link) {
     target.innerHTML = '<span style="display:grid;place-items:center;height:100%;font-size:12px">QR library unavailable.<br>Use the link instead.</span>';
     return;
   }
-  qrInstance = new QRCode(target, { text: link, width: 190, height: 190, colorDark: '#102820', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  qrInstance = new QRCode(target, { text: link, width: 190, height: 190, colorDark: '#102820', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
 }
 
 function showResult(merchant) {
@@ -159,6 +192,8 @@ merchantForm.addEventListener('submit', (event) => {
   localStorage.setItem('paanchMerchant', JSON.stringify(merchant));
   showResult(merchant);
 });
+
+$('#reviewUrl').addEventListener('input', updateReviewLinkStatus);
 
 $('#copyLink').addEventListener('click', async () => {
   try {
@@ -236,7 +271,7 @@ $('#customerPay').addEventListener('click', () => {
 $('#viewDemo').addEventListener('click', () => showCustomer(demoMerchant));
 $('#heroReview').addEventListener('click', () => window.open(demoMerchant.reviewUrl, '_blank', 'noopener,noreferrer'));
 $('#heroPay').addEventListener('click', () => showCustomer(demoMerchant));
-$('#reviewHelp').addEventListener('click', () => showToast('In Google Business Profile: Ask for reviews → copy your review link.'));
+$('#reviewHelp').addEventListener('click', () => showToast('Open Google Business Profile → Ask for reviews → Copy link. It usually starts with g.page/r/.'));
 $('#googleSignIn').addEventListener('click', () => {
   showToast('Google sign-in needs your OAuth Client ID. Preview mode opened.');
   document.querySelector('#merchant').scrollIntoView({ behavior: 'smooth' });
@@ -254,16 +289,17 @@ if (saved) {
     $('#paymentNote').value = merchant.paymentNote || '';
   } catch { localStorage.removeItem('paanchMerchant'); }
 }
+updateReviewLinkStatus();
 
 const params = new URLSearchParams(window.location.search);
-if (params.get('mode') === 'customer') {
+if (params.get('m') === 'c' || params.get('mode') === 'customer') {
   const merchant = {
-    shopName: params.get('shop') || 'Local shop',
-    upiId: params.get('upi') || '',
-    amount: params.get('amount') || '',
-    discount: params.get('discount') || '',
-    reviewUrl: params.get('review') || 'https://google.com',
-    paymentNote: params.get('note') || 'Payment'
+    shopName: params.get('s') || params.get('shop') || 'Local shop',
+    upiId: params.get('u') || params.get('upi') || '',
+    amount: params.get('a') || params.get('amount') || '',
+    discount: params.get('d') || params.get('discount') || '',
+    reviewUrl: params.get('r') || params.get('review') || 'https://google.com',
+    paymentNote: params.get('n') || params.get('note') || 'Payment'
   };
   showCustomer(merchant);
 }
