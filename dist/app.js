@@ -260,7 +260,7 @@ $('#downloadQr').addEventListener('click', async () => {
       }
     });
     const link = document.createElement('a');
-    link.download = `${currentMerchant.shopName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-paanch-poster.png`;
+    link.download = `${currentMerchant.shopName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-onescan-poster.png`;
     link.href = poster.toDataURL('image/png');
     link.click();
     showToast('Illustrated QR poster downloaded');
