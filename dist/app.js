@@ -63,7 +63,24 @@ function payableAmount(amount, discount) {
 function normalizeReviewUrl(value) {
   const raw = value.trim();
   if (!raw) return '';
-  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const url = new URL(normalized);
+    const host = url.hostname.toLowerCase().replace(/^www\./, '');
+    const isGoogleHost = host === 'google.com' || host.endsWith('.google.com');
+    if (isGoogleHost && url.pathname === '/search' && url.hash.startsWith('#sv=')) {
+      const compact = new URL(`${url.protocol}//${url.host}/search`);
+      const query = url.searchParams.get('q');
+      const placeSignal = url.searchParams.get('si');
+      if (query) compact.searchParams.set('q', query);
+      if (placeSignal) compact.searchParams.set('si', placeSignal);
+      compact.hash = url.hash;
+      return compact.toString();
+    }
+  } catch {
+    return normalized;
+  }
+  return normalized;
 }
 
 function reviewLinkError(value) {
@@ -73,9 +90,13 @@ function reviewLinkError(value) {
     const url = new URL(raw);
     const host = url.hostname.toLowerCase().replace(/^www\./, '');
     const isGoogleHost = host === 'google.com' || host.endsWith('.google.com');
-    const isSearchResult = isGoogleHost && (url.pathname === '/search' || url.hash.startsWith('#sv='));
-    if (isSearchResult || raw.length > 600) {
-      return 'This is a long Google Search link and can break the QR. Use Google Business Profile → Ask for reviews → Copy link.';
+    const hasDirectReviewState = isGoogleHost && url.hash.startsWith('#sv=');
+    const isGenericSearch = isGoogleHost && url.pathname === '/search' && !hasDirectReviewState;
+    if (isGenericSearch) {
+      return 'This is a Google Search page, not a direct review form. Open the restaurant’s Write a review screen and copy that link.';
+    }
+    if (raw.length > 600 && !hasDirectReviewState) {
+      return 'This link is too long for a reliable QR. Use Google Business Profile → Ask for reviews → Copy link.';
     }
     if (!['http:', 'https:'].includes(url.protocol)) return 'Enter a valid Google review link.';
   } catch {
@@ -87,13 +108,17 @@ function reviewLinkError(value) {
 function updateReviewLinkStatus() {
   const input = $('#reviewUrl');
   const status = $('#reviewLinkStatus');
-  const raw = input.value.trim();
-  const error = reviewLinkError(raw);
+  const typed = input.value.trim();
+  const prepared = normalizeReviewUrl(typed);
+  const typedWithProtocol = /^https?:\/\//i.test(typed) ? typed : `https://${typed}`;
+  const wasSimplified = Boolean(typed) && prepared.length < typedWithProtocol.length;
+  const error = reviewLinkError(typed);
   status.classList.toggle('is-error', Boolean(error));
-  status.classList.toggle('is-good', Boolean(raw) && !error);
+  status.classList.toggle('is-good', Boolean(typed) && !error);
   input.setAttribute('aria-invalid', error ? 'true' : 'false');
   if (error) status.textContent = error;
-  else if (raw) status.textContent = '✓ This link is short enough for a reliable customer QR.';
+  else if (wasSimplified) status.textContent = '✓ Direct Google review link found. We’ll shorten it automatically for the QR.';
+  else if (typed) status.textContent = '✓ This link is ready for the customer QR.';
   else status.textContent = 'Use the short link from Google Business Profile—not a Google Search result.';
 }
 
@@ -179,6 +204,7 @@ function updatePayLabel() {
 
 merchantForm.addEventListener('submit', (event) => {
   event.preventDefault();
+  const enteredReviewUrl = $('#reviewUrl').value.trim();
   const merchant = {
     shopName: $('#shopName').value.trim(),
     upiId: $('#upiId').value.trim(),
@@ -189,8 +215,13 @@ merchantForm.addEventListener('submit', (event) => {
   };
   const error = validateMerchant(merchant);
   if (error) return showToast(error);
+  const enteredWithProtocol = /^https?:\/\//i.test(enteredReviewUrl) ? enteredReviewUrl : `https://${enteredReviewUrl}`;
+  const linkWasSimplified = merchant.reviewUrl.length < enteredWithProtocol.length;
+  $('#reviewUrl').value = merchant.reviewUrl;
+  updateReviewLinkStatus();
   localStorage.setItem('paanchMerchant', JSON.stringify(merchant));
   showResult(merchant);
+  if (linkWasSimplified) showToast('Google review link shortened for a cleaner QR');
 });
 
 $('#reviewUrl').addEventListener('input', updateReviewLinkStatus);
