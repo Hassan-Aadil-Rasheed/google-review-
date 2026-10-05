@@ -244,16 +244,29 @@ $('#previewPage').addEventListener('click', () => {
   showCustomer(currentMerchant);
 });
 
-$('#downloadQr').addEventListener('click', () => {
-  const canvas = $('#qrCode canvas');
-  const image = $('#qrCode img');
-  const source = canvas?.toDataURL('image/png') || image?.src;
-  if (!source) return showToast('QR image is not ready yet');
-  const link = document.createElement('a');
-  link.download = `${currentMerchant.shopName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-paanch-qr.png`;
-  link.href = source;
-  link.click();
-  showToast('QR downloaded');
+$('#downloadQr').addEventListener('click', async () => {
+  const button = $('#downloadQr');
+  if (typeof html2canvas === 'undefined') return showToast('Poster exporter is still loading. Try again in a moment.');
+  button.disabled = true;
+  button.textContent = 'Preparing poster…';
+  try {
+    const poster = await html2canvas($('.qr-panel'), {
+      scale: 3,
+      backgroundColor: null,
+      useCORS: true,
+      logging: false
+    });
+    const link = document.createElement('a');
+    link.download = `${currentMerchant.shopName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-paanch-poster.png`;
+    link.href = poster.toDataURL('image/png');
+    link.click();
+    showToast('Illustrated QR poster downloaded');
+  } catch {
+    showToast('Could not create the poster. Try again.');
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Download poster';
+  }
 });
 
 $('#closeDialog').addEventListener('click', () => resultDialog.close());
