@@ -207,20 +207,23 @@ document.querySelectorAll('input[name="rating"]').forEach((input) => {
 $('#customerReview').addEventListener('click', async () => {
   const reviewText = $('#reviewText').value.trim();
   const stars = document.querySelector('input[name="rating"]:checked')?.value || '5';
+  const starCharacters = '★'.repeat(Number(stars));
+  const copiedReview = reviewText ? `${starCharacters}\n${reviewText}` : starCharacters;
   window.open(currentMerchant.reviewUrl, '_blank', 'noopener,noreferrer');
 
-  if (!reviewText) {
-    showToast(`Google opened—select ${stars} star${stars === '1' ? '' : 's'} and write your review`);
-    return;
-  }
-
   try {
-    await navigator.clipboard.writeText(reviewText);
+    await navigator.clipboard.writeText(copiedReview);
   } catch {
-    $('#reviewText').select();
+    const helper = document.createElement('textarea');
+    helper.value = copiedReview;
+    helper.style.position = 'fixed';
+    helper.style.opacity = '0';
+    document.body.appendChild(helper);
+    helper.select();
     document.execCommand('copy');
+    helper.remove();
   }
-  showToast(`Text copied—select ${stars} star${stars === '1' ? '' : 's'} on Google and paste it`);
+  showToast(`${stars} star${stars === '1' ? '' : 's'} and text copied—paste on Google, then select the official rating`);
 });
 $('#customerPay').addEventListener('click', () => {
   const amount = $('#customerAmount').value.trim();
