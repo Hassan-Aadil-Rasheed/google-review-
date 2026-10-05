@@ -108,10 +108,12 @@
         <form class="builder" id="merchantForm">
           <div class="form-head"><span>Shop details</span><span class="autosave">● Saved locally</span></div>
           <label>Shop name<input id="shopName" name="shopName" required placeholder="e.g. Anand Chai Corner" autocomplete="organization" /></label>
+          <label>UPI ID<input id="upiId" name="upiId" required placeholder="shop@okaxis" inputmode="email" /></label>
           <div class="field-row">
-            <label>UPI ID<input id="upiId" name="upiId" required placeholder="shop@okaxis" inputmode="email" /></label>
-            <label>Default amount<input id="amount" name="amount" placeholder="120" inputmode="decimal" /></label>
+            <label>Default bill amount<input id="amount" name="amount" placeholder="120" inputmode="decimal" /></label>
+            <label>Discount %<input id="discount" name="discount" placeholder="10" inputmode="decimal" min="0" max="100" /></label>
           </div>
+          <p class="discount-help">The discount applies to payment automatically. A Google review is never required.</p>
           <label>Google review link<input id="reviewUrl" name="reviewUrl" required placeholder="https://g.page/r/…/review" inputmode="url" /></label>
           <p class="field-help"><button type="button" id="reviewHelp">Where do I find this?</button></p>
           <label>Payment note<input id="paymentNote" name="paymentNote" placeholder="Bill payment" maxlength="40" /></label>
@@ -139,7 +141,11 @@
         <p class="customer-sub">Enjoyed your visit? A quick Google review helps this local business grow.</p>
         <button class="customer-review" id="customerReview" type="button"><span class="big-stars">★★★★★</span><strong>Review on Google</strong><small>Opens the shop's Google listing ↗</small></button>
         <div class="customer-divider"><span>then pay securely with UPI</span></div>
-        <label class="amount-input"><span>Amount</span><div><b>₹</b><input id="customerAmount" inputmode="decimal" aria-label="Payment amount" value="120" /></div></label>
+        <label class="amount-input"><span>Bill amount <em class="discount-badge" id="discountBadge" hidden></em></span><div><b>₹</b><input id="customerAmount" inputmode="decimal" aria-label="Bill amount before discount" value="120" /></div></label>
+        <div class="discount-summary" id="discountSummary" hidden>
+          <div><span id="discountPercent">10% discount</span><small>Applied automatically · no review required</small></div>
+          <strong>You save <span id="savedAmount">₹12</span></strong>
+        </div>
         <button class="customer-pay" id="customerPay" type="button">Pay <span id="payAmountLabel">₹120</span> with any UPI app <span>→</span></button>
         <div class="upi-apps"><span>G Pay</span><span>PhonePe</span><span>paytm</span><span>BHIM</span><span>+ more</span></div>
         <p class="secure-note">↗ Payment opens in your installed UPI app. Always confirm the merchant name before paying.</p>
@@ -156,6 +162,7 @@
         <h2>Your shop QR is ready.</h2>
         <div id="qrCode" class="qr-code" aria-label="Customer page QR code"></div>
         <strong id="qrShopName">Your shop</strong>
+        <span class="qr-discount" id="qrDiscount" hidden></span>
         <span class="scan-caption">SCAN · REVIEW · PAY</span>
       </div>
       <div class="share-panel">

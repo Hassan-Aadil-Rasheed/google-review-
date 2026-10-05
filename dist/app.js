@@ -9,6 +9,7 @@ const demoMerchant = {
   shopName: 'Anand Chai Corner',
   upiId: 'anandchai@okaxis',
   amount: '120',
+  discount: '10',
   reviewUrl: 'https://www.google.com/search?q=Anand+Chai+Corner',
   paymentNote: 'Chai bill'
 };
@@ -32,6 +33,7 @@ function customerUrl(merchant) {
   url.searchParams.set('shop', merchant.shopName);
   url.searchParams.set('upi', merchant.upiId);
   if (merchant.amount) url.searchParams.set('amount', merchant.amount);
+  if (Number(merchant.discount) > 0) url.searchParams.set('discount', merchant.discount);
   url.searchParams.set('review', merchant.reviewUrl);
   if (merchant.paymentNote) url.searchParams.set('note', merchant.paymentNote);
   return url.toString();
@@ -46,6 +48,16 @@ function upiUrl(merchant, amount) {
   });
   if (amount && Number(amount) > 0) params.set('am', Number(amount).toFixed(2));
   return `upi://pay?${params.toString()}`;
+}
+
+function money(value) {
+  return `₹${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: Number(value) % 1 ? 2 : 0 })}`;
+}
+
+function payableAmount(amount, discount) {
+  const original = Number(amount);
+  const percent = Math.min(100, Math.max(0, Number(discount) || 0));
+  return Math.round(original * (1 - percent / 100) * 100) / 100;
 }
 
 function normalizeReviewUrl(value) {
@@ -63,6 +75,7 @@ function validateMerchant(merchant) {
     return 'Enter a valid Google review link.';
   }
   if (merchant.amount && (Number(merchant.amount) <= 0 || Number(merchant.amount) > 100000)) return 'Enter an amount between ₹1 and ₹1,00,000.';
+  if (merchant.discount && (Number(merchant.discount) < 0 || Number(merchant.discount) > 100)) return 'Enter a discount between 0% and 100%.';
   return '';
 }
 
@@ -81,6 +94,9 @@ function showResult(merchant) {
   const link = customerUrl(merchant);
   $('#shareLink').value = link;
   $('#qrShopName').textContent = merchant.shopName;
+  const discount = Number(merchant.discount) || 0;
+  $('#qrDiscount').hidden = discount <= 0;
+  $('#qrDiscount').textContent = discount > 0 ? `${discount}% payment discount` : '';
   renderQr(link);
   resultDialog.showModal();
 }
@@ -109,7 +125,23 @@ function hideCustomer() {
 
 function updatePayLabel() {
   const amount = $('#customerAmount').value.trim();
-  $('#payAmountLabel').textContent = amount && Number(amount) > 0 ? `₹${Number(amount).toLocaleString('en-IN')}` : '';
+  const original = Number(amount);
+  const discount = Math.min(100, Math.max(0, Number(currentMerchant?.discount) || 0));
+  const payable = amount && original > 0 ? payableAmount(original, discount) : 0;
+  const hasDiscount = discount > 0 && original > 0;
+
+  $('#discountBadge').hidden = !hasDiscount;
+  $('#discountSummary').hidden = !hasDiscount;
+  if (hasDiscount) {
+    $('#discountBadge').textContent = `${discount}% OFF`;
+    $('#discountPercent').textContent = `${discount}% discount on ${money(original)}`;
+    $('#savedAmount').textContent = money(original - payable);
+  }
+
+  const payButton = $('#customerPay');
+  payButton.disabled = Boolean(amount && original > 0 && payable === 0);
+  if (payButton.disabled) payButton.innerHTML = 'No payment due · 100% discounted';
+  else payButton.innerHTML = `Pay <span id="payAmountLabel">${payable > 0 ? money(payable) : ''}</span> with any UPI app <span>→</span>`;
 }
 
 merchantForm.addEventListener('submit', (event) => {
@@ -118,6 +150,7 @@ merchantForm.addEventListener('submit', (event) => {
     shopName: $('#shopName').value.trim(),
     upiId: $('#upiId').value.trim(),
     amount: $('#amount').value.trim(),
+    discount: $('#discount').value.trim(),
     reviewUrl: normalizeReviewUrl($('#reviewUrl').value),
     paymentNote: $('#paymentNote').value.trim()
   };
@@ -164,7 +197,9 @@ $('#customerReview').addEventListener('click', () => window.open(currentMerchant
 $('#customerPay').addEventListener('click', () => {
   const amount = $('#customerAmount').value.trim();
   if (!amount || Number(amount) <= 0) return showToast('Enter the amount you want to pay');
-  window.location.href = upiUrl(currentMerchant, amount);
+  const payable = payableAmount(amount, currentMerchant.discount);
+  if (payable <= 0) return showToast('Your bill is fully discounted—no payment is due');
+  window.location.href = upiUrl(currentMerchant, payable);
 });
 
 $('#viewDemo').addEventListener('click', () => showCustomer(demoMerchant));
@@ -183,6 +218,7 @@ if (saved) {
     $('#shopName').value = merchant.shopName || '';
     $('#upiId').value = merchant.upiId || '';
     $('#amount').value = merchant.amount || '';
+    $('#discount').value = merchant.discount || '';
     $('#reviewUrl').value = merchant.reviewUrl || '';
     $('#paymentNote').value = merchant.paymentNote || '';
   } catch { localStorage.removeItem('paanchMerchant'); }
@@ -194,6 +230,7 @@ if (params.get('mode') === 'customer') {
     shopName: params.get('shop') || 'Local shop',
     upiId: params.get('upi') || '',
     amount: params.get('amount') || '',
+    discount: params.get('discount') || '',
     reviewUrl: params.get('review') || 'https://google.com',
     paymentNote: params.get('note') || 'Payment'
   };
