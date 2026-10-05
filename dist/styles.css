@@ -14,7 +14,8 @@ dialog{border:0;border-radius:28px;padding:0;width:min(850px,calc(100% - 30px));
 @media(max-width:600px){.shell{width:min(100% - 28px,1180px)}.nav{height:72px}.nav .btn-quiet{font-size:0;padding:10px}.nav .btn-quiet svg{width:20px}.hero{padding-block:36px 45px;gap:25px}.hero h1{font-size:63px}.hero-actions{flex-direction:column;gap:8px}.hero-stage{min-height:455px;transform:scale(.87);margin-inline:-25px}.sun-shape{width:440px;height:430px}.counter-tag{right:10px}.process{padding-block:80px}.steps{margin-top:40px}.merchant-section{padding:75px 0}.builder{padding:24px 18px}.field-row{grid-template-columns:1fr;gap:0}.closing{padding-block:75px}.dialog-grid{grid-template-columns:1fr}.qr-panel{padding:35px 25px}.share-panel{padding:35px 25px}.qr-code{width:180px;height:180px}.customer-card{padding:28px 20px}.customer-page{padding:16px}.customer-back{font-size:11px}}
 
 /* The merchant-provided elephant artwork turns the QR panel into a counter-display poster. */
-.qr-panel{position:relative;overflow:hidden;background:linear-gradient(180deg,#f9d45c 0%,#f7c948 100%)}
-.qr-panel-art{display:block;width:calc(100% + 90px);height:150px;object-fit:cover;object-position:center 54%;margin:-8px -45px 24px;box-shadow:0 12px 28px rgba(46,50,29,.13)}
-@media(max-width:600px){.qr-panel-art{width:calc(100% + 50px);height:135px;margin:-6px -25px 22px}}
+.qr-panel{position:relative;isolation:isolate;overflow:hidden;background:#f7c948}
+.qr-panel::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(255,239,178,.68) 0%,rgba(248,204,65,.38) 48%,rgba(255,226,126,.58) 100%);pointer-events:none}
+.qr-panel-art{position:absolute;inset:0;z-index:0;width:100%;height:100%;object-fit:cover;object-position:47% center;margin:0}
+.qr-panel>*:not(.qr-panel-art){position:relative;z-index:2}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
