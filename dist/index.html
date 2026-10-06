@@ -21,11 +21,11 @@
     </a>
     <nav aria-label="Main navigation">
       <a href="#how">How it works</a>
-      <a href="#merchant">For merchants</a>
+      <a href="#merchant" id="merchantNavLink">For merchants</a>
     </nav>
     <button class="btn btn-quiet" id="googleSignIn" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.5a4.7 4.7 0 0 1-2 3.1v2.5h3.2c1.9-1.7 3.1-4.3 3.1-7.4Z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.7-2.4l-3.2-2.5c-.9.6-2 1-3.5 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 14a6 6 0 0 1 0-3.9V7.4H3.1a10 10 0 0 0 0 9.2L6.4 14Z"/><path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.8A9.7 9.7 0 0 0 3.1 7.4l3.3 2.7C7.2 7.7 9.4 6 12 6Z"/></svg>
-      Continue with Google
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10M6 10h12v10H6z"/><circle cx="12" cy="15" r="1.4" fill="currentColor"/></svg>
+      Merchant login
     </button>
   </header>
 
@@ -36,7 +36,7 @@
         <h1>One scan.<br><span>Five stars.</span><br>Paid.</h1>
         <p class="hero-text">Give every customer one simple page to review your shop on Google and pay with any UPI app they already use.</p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#merchant">Create your shop page <span>↗</span></a>
+          <a class="btn btn-primary" href="#merchant" id="createShopPage">Create your shop page <span>↗</span></a>
           <button class="text-link" id="viewDemo" type="button">Try the customer view <span>→</span></button>
         </div>
         <div class="trust-row">
@@ -105,7 +105,22 @@
           <div class="truth-note"><strong>Good to know</strong><p>Payments go directly to your UPI ID. This starter does not verify payment status or take a fee.</p></div>
         </div>
 
-        <form class="builder" id="merchantForm">
+        <div class="merchant-access-gate" id="merchantAccessGate">
+          <div class="gate-mark" aria-hidden="true"><span>1</span><i></i><b>▦</b></div>
+          <span class="eyebrow">MERCHANT ACCESS</span>
+          <h3>Your shop starts behind one secure door.</h3>
+          <p>Create a merchant account or log in to build, save and download your OneScan QR.</p>
+          <button class="btn btn-sun" id="openMerchantSignup" type="button">Create merchant account <span>→</span></button>
+          <button class="text-link gate-login" id="openMerchantLogin" type="button">Already registered? Log in</button>
+          <small>Customers never see this step. Their QR opens the review and payment page directly.</small>
+        </div>
+
+        <form class="builder" id="merchantForm" hidden>
+          <div class="merchant-identity">
+            <span class="merchant-avatar" id="merchantAvatar">M</span>
+            <div><small>MERCHANT ACCOUNT</small><strong id="merchantAccountName">Merchant</strong><span id="merchantAccountEmail"></span></div>
+            <button id="merchantLogout" type="button">Log out</button>
+          </div>
           <div class="form-head"><span>Shop details</span><span class="autosave">● Saved locally</span></div>
           <label>Shop name<input id="shopName" name="shopName" required placeholder="e.g. Anand Chai Corner" autocomplete="organization" /></label>
           <label>UPI ID<input id="upiId" name="upiId" required placeholder="shop@okaxis" inputmode="email" /></label>
@@ -129,7 +144,7 @@
     <section class="closing shell">
       <div><span class="eyebrow">A SMALLER ASK</span><h2>Make it easy<br>to say thanks.</h2></div>
       <p>Your happiest customers are often willing to review. OneScan simply puts the right link in front of them at the right time.</p>
-      <a class="round-arrow" href="#merchant" aria-label="Create your shop page">↗</a>
+      <a class="round-arrow" href="#merchant" id="closingMerchantLink" aria-label="Create your shop page">↗</a>
     </section>
   </main>
 
@@ -178,6 +193,56 @@
       <p class="powered">Powered by OneScan · Review. Pay. Done.</p>
     </div>
   </section>
+
+  <dialog id="authDialog" class="auth-dialog">
+    <button class="dialog-close" id="closeAuthDialog" type="button" aria-label="Close">×</button>
+    <div class="auth-layout">
+      <aside class="auth-story">
+        <a class="brand auth-brand" href="./" aria-label="OneScan home"><span class="brand-mark">1</span><span>OneScan</span></a>
+        <div>
+          <span class="eyebrow light">FOR MERCHANTS</span>
+          <h2>Set up once.<br>Let the QR do the rest.</h2>
+          <p>Your customers skip accounts entirely. They scan, review and pay.</p>
+        </div>
+        <div class="auth-route" aria-label="Merchant and customer access routes">
+          <span><b>Merchant</b><small>Account required</small></span><i>→</i><span><b>Customer</b><small>No sign-up</small></span>
+        </div>
+      </aside>
+      <div class="auth-panel">
+        <div class="auth-tabs" role="tablist" aria-label="Merchant account">
+          <button id="signupTab" type="button" role="tab" aria-selected="true">Sign up</button>
+          <button id="loginTab" type="button" role="tab" aria-selected="false">Log in</button>
+        </div>
+
+        <form id="signupForm" class="auth-form">
+          <div class="auth-heading"><span>NEW MERCHANT</span><h3>Create your account</h3><p>Save your shop setup on this device.</p></div>
+          <button class="google-auth-button" id="signupGoogle" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.5a4.7 4.7 0 0 1-2 3.1v2.5h3.2c1.9-1.7 3.1-4.3 3.1-7.4Z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.7-2.4l-3.2-2.5c-.9.6-2 1-3.5 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 14a6 6 0 0 1 0-3.9V7.4H3.1a10 10 0 0 0 0 9.2L6.4 14Z"/><path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.8A9.7 9.7 0 0 0 3.1 7.4l3.3 2.7C7.2 7.7 9.4 6 12 6Z"/></svg>
+            Continue with Google <small>OAuth setup needed</small>
+          </button>
+          <div class="auth-or"><span></span>or use email<span></span></div>
+          <label>Your name<input id="signupName" required autocomplete="name" placeholder="Aadil Rasheed" /></label>
+          <label>Email address<input id="signupEmail" required type="email" autocomplete="email" placeholder="you@gmail.com" /></label>
+          <label>Create password<input id="signupPassword" required type="password" minlength="6" autocomplete="new-password" placeholder="At least 6 characters" /></label>
+          <button class="btn btn-primary auth-submit" type="submit">Create account <span>→</span></button>
+        </form>
+
+        <form id="loginForm" class="auth-form" hidden>
+          <div class="auth-heading"><span>WELCOME BACK</span><h3>Log in to your shop</h3><p>Use the account created on this device.</p></div>
+          <button class="google-auth-button" id="loginGoogle" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.5a4.7 4.7 0 0 1-2 3.1v2.5h3.2c1.9-1.7 3.1-4.3 3.1-7.4Z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.7-2.4l-3.2-2.5c-.9.6-2 1-3.5 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 14a6 6 0 0 1 0-3.9V7.4H3.1a10 10 0 0 0 0 9.2L6.4 14Z"/><path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.8A9.7 9.7 0 0 0 3.1 7.4l3.3 2.7C7.2 7.7 9.4 6 12 6Z"/></svg>
+            Continue with Google <small>OAuth setup needed</small>
+          </button>
+          <div class="auth-or"><span></span>or use email<span></span></div>
+          <label>Email address<input id="loginEmail" required type="email" autocomplete="email" placeholder="you@gmail.com" /></label>
+          <label>Password<input id="loginPassword" required type="password" autocomplete="current-password" placeholder="Your password" /></label>
+          <button class="btn btn-primary auth-submit" type="submit">Log in <span>→</span></button>
+        </form>
+        <p class="auth-status" id="authStatus" role="status" aria-live="polite"></p>
+        <p class="auth-local-note">Prototype account: the password is hashed and the account stays only in this browser. Connect a hosted auth provider before accepting real merchant accounts.</p>
+      </div>
+    </div>
+  </dialog>
 
   <dialog id="resultDialog">
     <button class="dialog-close" id="closeDialog" type="button" aria-label="Close">×</button>

@@ -1,9 +1,12 @@
 const $ = (selector) => document.querySelector(selector);
 const merchantForm = $('#merchantForm');
 const resultDialog = $('#resultDialog');
+const authDialog = $('#authDialog');
 const toast = $('#toast');
 let currentMerchant = null;
 let qrInstance = null;
+const ACCOUNT_KEY = 'onescanMerchantAccount';
+const SESSION_KEY = 'onescanMerchantSession';
 
 const demoMerchant = {
   shopName: 'Anand Chai Corner',
@@ -22,7 +25,70 @@ function showToast(message) {
 }
 
 function initials(name) {
-  return name.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase() || '5';
+  return name.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase() || '1';
+}
+
+function readStoredJson(key) {
+  try { return JSON.parse(localStorage.getItem(key) || 'null'); }
+  catch { localStorage.removeItem(key); return null; }
+}
+
+function merchantAccount() { return readStoredJson(ACCOUNT_KEY); }
+function merchantSession() { return readStoredJson(SESSION_KEY); }
+function isMerchantSignedIn() {
+  const account = merchantAccount();
+  const session = merchantSession();
+  return Boolean(account?.email && session?.email === account.email);
+}
+
+function bytesToBase64(bytes) {
+  return btoa(String.fromCharCode(...bytes));
+}
+
+async function passwordDigest(password, salt) {
+  const value = new TextEncoder().encode(`${salt}:${password}`);
+  const digest = await crypto.subtle.digest('SHA-256', value);
+  return bytesToBase64(new Uint8Array(digest));
+}
+
+function setAuthMode(mode) {
+  const signup = mode === 'signup';
+  $('#signupForm').hidden = !signup;
+  $('#loginForm').hidden = signup;
+  $('#signupTab').setAttribute('aria-selected', String(signup));
+  $('#loginTab').setAttribute('aria-selected', String(!signup));
+  $('#authStatus').textContent = '';
+  $('#authStatus').classList.remove('is-success');
+}
+
+function openAuth(mode = 'signup') {
+  setAuthMode(mode);
+  if (!authDialog.open) authDialog.showModal();
+  setTimeout(() => (mode === 'signup' ? $('#signupName') : $('#loginEmail')).focus(), 30);
+}
+
+function syncMerchantAccess() {
+  const signedIn = isMerchantSignedIn();
+  const account = merchantAccount();
+  $('#merchantAccessGate').hidden = signedIn;
+  merchantForm.hidden = !signedIn;
+  if (signedIn) {
+    $('#merchantAccountName').textContent = account.name;
+    $('#merchantAccountEmail').textContent = account.email;
+    $('#merchantAvatar').textContent = initials(account.name).slice(0, 1);
+    $('#googleSignIn').lastChild.textContent = ` ${account.name.split(/\s+/)[0]}`;
+  } else {
+    $('#googleSignIn').lastChild.textContent = ' Merchant login';
+  }
+}
+
+function moveToMerchant(event, mode = 'signup') {
+  if (event) event.preventDefault();
+  if (isMerchantSignedIn()) {
+    document.querySelector('#merchant').scrollIntoView({ behavior: 'smooth' });
+  } else {
+    openAuth(mode);
+  }
 }
 
 function customerUrl(merchant) {
@@ -204,6 +270,7 @@ function updatePayLabel() {
 
 merchantForm.addEventListener('submit', (event) => {
   event.preventDefault();
+  if (!isMerchantSignedIn()) return openAuth('login');
   const enteredReviewUrl = $('#reviewUrl').value.trim();
   const merchant = {
     shopName: $('#shopName').value.trim(),
@@ -349,9 +416,64 @@ $('#viewDemo').addEventListener('click', () => showCustomer(demoMerchant));
 $('#heroReview').addEventListener('click', () => window.open(demoMerchant.reviewUrl, '_blank', 'noopener,noreferrer'));
 $('#heroPay').addEventListener('click', () => showCustomer(demoMerchant));
 $('#reviewHelp').addEventListener('click', () => showToast('Open Google Business Profile → Ask for reviews → Copy link. It usually starts with g.page/r/.'));
-$('#googleSignIn').addEventListener('click', () => {
-  showToast('Google sign-in needs your OAuth Client ID. Preview mode opened.');
+$('#googleSignIn').addEventListener('click', () => isMerchantSignedIn() ? moveToMerchant() : openAuth('login'));
+$('#createShopPage').addEventListener('click', (event) => moveToMerchant(event, 'signup'));
+$('#merchantNavLink').addEventListener('click', (event) => moveToMerchant(event, 'login'));
+$('#closingMerchantLink').addEventListener('click', (event) => moveToMerchant(event, 'signup'));
+$('#openMerchantSignup').addEventListener('click', () => openAuth('signup'));
+$('#openMerchantLogin').addEventListener('click', () => openAuth('login'));
+$('#closeAuthDialog').addEventListener('click', () => authDialog.close());
+$('#signupTab').addEventListener('click', () => setAuthMode('signup'));
+$('#loginTab').addEventListener('click', () => setAuthMode('login'));
+
+function googleAuthNotice() {
+  $('#authStatus').textContent = 'Google login needs an OAuth Client ID. Use email for this prototype.';
+}
+$('#signupGoogle').addEventListener('click', googleAuthNotice);
+$('#loginGoogle').addEventListener('click', googleAuthNotice);
+
+$('#signupForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const name = $('#signupName').value.trim();
+  const email = $('#signupEmail').value.trim().toLowerCase();
+  const password = $('#signupPassword').value;
+  if (!name || !email || password.length < 6) {
+    $('#authStatus').textContent = 'Enter your name, email and a password with at least 6 characters.';
+    return;
+  }
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  const salt = bytesToBase64(saltBytes);
+  const passwordHash = await passwordDigest(password, salt);
+  localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ name, email, salt, passwordHash }));
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ email }));
+  $('#signupForm').reset();
+  syncMerchantAccess();
+  authDialog.close();
   document.querySelector('#merchant').scrollIntoView({ behavior: 'smooth' });
+  showToast('Merchant account created');
+});
+
+$('#loginForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const email = $('#loginEmail').value.trim().toLowerCase();
+  const password = $('#loginPassword').value;
+  const account = merchantAccount();
+  if (!account || account.email !== email || await passwordDigest(password, account.salt) !== account.passwordHash) {
+    $('#authStatus').textContent = 'Email or password does not match the account on this device.';
+    return;
+  }
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ email }));
+  $('#loginForm').reset();
+  syncMerchantAccess();
+  authDialog.close();
+  document.querySelector('#merchant').scrollIntoView({ behavior: 'smooth' });
+  showToast('Logged in');
+});
+
+$('#merchantLogout').addEventListener('click', () => {
+  localStorage.removeItem(SESSION_KEY);
+  syncMerchantAccess();
+  showToast('Logged out');
 });
 
 const saved = localStorage.getItem('paanchMerchant');
@@ -367,6 +489,7 @@ if (saved) {
   } catch { localStorage.removeItem('paanchMerchant'); }
 }
 updateReviewLinkStatus();
+syncMerchantAccess();
 
 const params = new URLSearchParams(window.location.search);
 if (params.get('m') === 'c' || params.get('mode') === 'customer') {
