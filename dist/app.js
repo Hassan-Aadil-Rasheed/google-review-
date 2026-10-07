@@ -7,6 +7,8 @@ let currentMerchant = null;
 let qrInstance = null;
 const ACCOUNT_KEY = 'onescanMerchantAccount';
 const SESSION_KEY = 'onescanMerchantSession';
+const GOOGLE_CLIENT_ID = '96137544394-n9o475hrb1egqr67p0ussrdg0cbl391l.apps.googleusercontent.com';
+let googleAuthInitialized = false;
 
 const demoMerchant = {
   shopName: 'Anand Chai Corner',
@@ -64,7 +66,78 @@ function setAuthMode(mode) {
 function openAuth(mode = 'signup') {
   setAuthMode(mode);
   if (!authDialog.open) authDialog.showModal();
-  setTimeout(() => (mode === 'signup' ? $('#signupName') : $('#loginEmail')).focus(), 30);
+  setTimeout(() => {
+    renderGoogleButtons();
+    (mode === 'signup' ? $('#signupName') : $('#loginEmail')).focus();
+  }, 30);
+}
+
+async function handleGoogleCredential(credentialResponse) {
+  const status = $('#authStatus');
+  status.classList.remove('is-success');
+  status.textContent = 'Verifying your Google account…';
+
+  try {
+    const response = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: credentialResponse.credential })
+    });
+    const result = await response.json();
+    if (!response.ok || !result.account) throw new Error(result.error || 'Google sign-in failed');
+
+    const account = {
+      name: result.account.name,
+      email: result.account.email.toLowerCase(),
+      googleSub: result.account.id,
+      picture: result.account.picture,
+      provider: 'google'
+    };
+    localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account));
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: account.email, provider: 'google' }));
+    status.classList.add('is-success');
+    status.textContent = 'Google account verified.';
+    syncMerchantAccess();
+    setTimeout(() => {
+      authDialog.close();
+      document.querySelector('#merchant').scrollIntoView({ behavior: 'smooth' });
+      showToast(`Welcome, ${account.name.split(/\s+/)[0]}`);
+    }, 250);
+  } catch (error) {
+    status.textContent = error.message || 'Google sign-in could not be verified. Try again.';
+  }
+}
+
+function renderGoogleButtons() {
+  if (!googleAuthInitialized || !window.google?.accounts?.id) return;
+  ['#signupGoogle', '#loginGoogle'].forEach((selector) => {
+    const host = $(selector);
+    if (!host || host.childElementCount) return;
+    const width = Math.min(400, Math.max(240, Math.floor(host.clientWidth || 320)));
+    google.accounts.id.renderButton(host, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      shape: 'pill',
+      text: 'continue_with',
+      logo_alignment: 'left',
+      width
+    });
+  });
+}
+
+function initializeGoogleAuth() {
+  if (googleAuthInitialized) return true;
+  if (!window.google?.accounts?.id) return false;
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    ux_mode: 'popup',
+    use_fedcm_for_prompt: true
+  });
+  googleAuthInitialized = true;
+  renderGoogleButtons();
+  return true;
 }
 
 function syncMerchantAccess() {
@@ -426,12 +499,6 @@ $('#closeAuthDialog').addEventListener('click', () => authDialog.close());
 $('#signupTab').addEventListener('click', () => setAuthMode('signup'));
 $('#loginTab').addEventListener('click', () => setAuthMode('login'));
 
-function googleAuthNotice() {
-  $('#authStatus').textContent = 'Google login needs an OAuth Client ID. Use email for this prototype.';
-}
-$('#signupGoogle').addEventListener('click', googleAuthNotice);
-$('#loginGoogle').addEventListener('click', googleAuthNotice);
-
 $('#signupForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const name = $('#signupName').value.trim();
@@ -458,6 +525,10 @@ $('#loginForm').addEventListener('submit', async (event) => {
   const email = $('#loginEmail').value.trim().toLowerCase();
   const password = $('#loginPassword').value;
   const account = merchantAccount();
+  if (account?.provider === 'google' && account.email === email) {
+    $('#authStatus').textContent = 'This merchant account uses Google. Choose Continue with Google above.';
+    return;
+  }
   if (!account || account.email !== email || await passwordDigest(password, account.salt) !== account.passwordHash) {
     $('#authStatus').textContent = 'Email or password does not match the account on this device.';
     return;
@@ -490,6 +561,10 @@ if (saved) {
 }
 updateReviewLinkStatus();
 syncMerchantAccess();
+
+if (!initializeGoogleAuth()) {
+  $('#googleIdentityScript')?.addEventListener('load', initializeGoogleAuth, { once: true });
+}
 
 const params = new URLSearchParams(window.location.search);
 if (params.get('m') === 'c' || params.get('mode') === 'customer') {

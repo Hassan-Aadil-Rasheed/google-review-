@@ -27,4 +27,5 @@ dialog{border:0;border-radius:28px;padding:0;width:min(850px,calc(100% - 30px));
 /* Keep tall account forms reachable on short and mobile screens. */
 .auth-dialog{max-height:calc(100dvh - 20px);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-gutter:stable}
 @media(max-width:760px){.auth-dialog{max-height:calc(100dvh - 10px)}}
+.google-auth-host{width:100%;min-height:44px;display:grid;place-items:center;overflow:hidden}.google-auth-host>div{width:100%!important;display:flex;justify-content:center}.google-auth-host iframe{max-width:100%}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}

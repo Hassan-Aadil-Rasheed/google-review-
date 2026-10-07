@@ -1,0 +1,8 @@
+{
+  "name": "onescan",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "google-auth-library": "11.1.0"
+  }
+}
